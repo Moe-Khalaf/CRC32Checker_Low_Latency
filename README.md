@@ -47,7 +47,8 @@ The block diagram below shows the architecture of the modified lfsr.v module.
 ## Design Evolution
 
 For the sake of learning value and exploration, the original design of lfsr.v was synthesized and implemented in Vivado to assess for timing closure. At 256 data bits, the original design would fail to meet timing closure at 200MHz with a worst negative slack(WNS) of 5.3ns. The image below depicts the critical path of this architecture. 
-![Old Architecture](docs/OldArchitecture.png)
+
+![OldArchitecture](docs/OldArchitecture.png)
 
 In order to modify this design for timing closure, the first instinct is to pipeline the XOR tree combinational logic. Given that a 200MHz clock frequency would imply a 5ns clock period, it became clear that simply splitting the combinational logic into two sequential stages would not suffice. The mathematics behind this judgement are as follows
 
