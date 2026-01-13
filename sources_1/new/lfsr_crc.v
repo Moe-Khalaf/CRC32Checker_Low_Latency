@@ -49,10 +49,14 @@ module lfsr #
     parameter STYLE = "AUTO"
 )
 (
+    input  wire                  clk_in,
+    input  wire                  enable_in,
+    input  wire                  reset_in,
     input  wire [DATA_WIDTH-1:0] data_in,
     input  wire [LFSR_WIDTH-1:0] state_in,
     output wire [DATA_WIDTH-1:0] data_out,
-    output wire [LFSR_WIDTH-1:0] state_out
+    output reg [LFSR_WIDTH-1:0]  state_out,
+    output reg                   state_out_valid
 );
 
 /*
@@ -373,24 +377,8 @@ genvar n;
 
 generate
 
-if (STYLE_INT == "REDUCTION") begin
 
-    // use Verilog reduction operator
-    // fast in iverilog
-    // significantly larger than generated code with ISE (inferred wide XORs may be tripping up optimizer)
-    // slightly smaller than generated code with Quartus
-    // --> better for simulation
-
-    for (n = 0; n < LFSR_WIDTH; n = n + 1) begin : lfsr_state
-        wire [LFSR_WIDTH+DATA_WIDTH-1:0] mask = lfsr_mask(n);
-        assign state_out[n] = ^({data_in, state_in} & mask);
-    end
-    for (n = 0; n < DATA_WIDTH; n = n + 1) begin : lfsr_data
-        wire [LFSR_WIDTH+DATA_WIDTH-1:0] mask = lfsr_mask(n+LFSR_WIDTH);
-        assign data_out[n] = ^({data_in, state_in} & mask);
-    end
-
-end else if (STYLE_INT == "LOOP") begin
+    if (STYLE_INT == "LOOP") begin
 
     // use nested loops
     // very slow in iverilog
@@ -400,29 +388,109 @@ end else if (STYLE_INT == "LOOP") begin
     // Moe: Within this for loop we use the lsfr mask to determine the XOR trees
     // Moe: If this implementation does not meet timing closure in one clock cycle
     // the loop can be modified to split the XOR trees in half and pipeline instead
-    for (n = 0; n < LFSR_WIDTH; n = n + 1) begin : lfsr_state
-        wire [LFSR_WIDTH+DATA_WIDTH-1:0] mask = lfsr_mask(n);
-
-        reg state_reg;
-
-        assign state_out[n] = state_reg;
-
-        integer i;
-
-        always @* begin
-            state_reg = 1'b0;
-            for (i = 0; i < LFSR_WIDTH; i = i + 1) begin
-                if (mask[i]) begin
-                    state_reg = state_reg ^ state_in[i];
-                end
-            end
-            for (i = 0; i < DATA_WIDTH; i = i + 1) begin
-                if (mask[i+LFSR_WIDTH]) begin
-                    state_reg = state_reg ^ data_in[i];
-                end
+    always @(posedge clk_in) begin : output_valid_procedure
+        reg cnt_reg;
+        if(reset_in) begin
+            state_out_valid = 1'b0;
+            cnt_reg = 1'b0;
+        end else begin
+            if (enable_in && !cnt_reg) begin
+                cnt_reg = 1'b1;
+                state_out_valid = 1'b0;
+            end else if(cnt_reg) begin
+                cnt_reg = 1'b0;
+                state_out_valid = 1'b1;
+            end else begin
+                cnt_reg = 1'b0;
+                state_out_valid = 1'b0;
             end
         end
     end
+    for (n = 0; n < LFSR_WIDTH; n = n + 1) begin : lfsr_state
+        wire [LFSR_WIDTH+DATA_WIDTH-1:0] mask = lfsr_mask(n);
+        
+        reg state_reg;
+        reg state_reg_2;
+        reg state_reg_3;
+        reg state_reg_4;
+        reg state_reg_5;
+        reg state_reg_6;
+        
+        reg cnt_reg;
+
+        integer i;
+
+        always @(posedge clk_in) begin
+            if(reset_in) begin
+                state_reg = 1'b0;
+                state_reg_2 = 1'b0;
+                state_reg_3 = 1'b0;
+                state_reg_2 = 1'b0;
+                state_reg_4 = 1'b0;
+                state_reg_5 = 1'b0;
+                state_reg_6 = 1'b0;
+                
+                state_out[n] = 1'b0;
+                cnt_reg = 1'b0;
+            end else begin
+                if(enable_in && !cnt_reg) begin
+                    // Data Bits XOR trees
+                    for (i = 0; i < 85; i = i+1) begin
+                        if (mask[i+LFSR_WIDTH]) begin
+                            state_reg = state_reg ^ data_in[i];
+                        end
+                    end
+                    for (i = 85; i < 170; i = i+1) begin
+                        if (mask[i+LFSR_WIDTH]) begin
+                            state_reg_2 = state_reg_2 ^ data_in[i];
+                        end
+                    end
+                    for (i = 170; i < 256; i = i+1) begin
+                        if (mask[i+LFSR_WIDTH]) begin
+                            state_reg_3 = state_reg_3 ^ data_in[i];
+                        end
+                    end
+                    
+                    // State Bits XOR Tree
+                    for (i = 0; i < 11; i = i+1) begin
+                        if (mask[i]) begin
+                            state_reg_4 = state_reg_4 ^ state_in[i];
+                        end
+                    end
+                    for (i = 11; i < 22; i = i+1) begin
+                        if (mask[i]) begin
+                            state_reg_5 = state_reg_5 ^ state_in[i];
+                        end
+                    end
+                    for (i = 22; i < 32; i = i+1) begin
+                        if (mask[i]) begin
+                            state_reg_6 = state_reg_6 ^ state_in[i];
+                        end
+                    end
+                    cnt_reg = 1;
+                end else if(cnt_reg == 1'b1) begin
+                    state_out[n] = state_reg ^ state_reg_2 ^ state_reg_3 ^ state_reg_4 ^ state_reg_5 ^ state_reg_6;
+                    cnt_reg = 0;
+                    //state_reg = 0;
+                    //state_reg_2 = 0;
+                    //state_reg_3 = 0;
+                end
+            end
+            // Moe: This block below is the old xor tree code
+//            state_reg = 1'b0;
+//            for (i = 0; i < LFSR_WIDTH; i = i + 1) begin
+//                if (mask[i]) begin
+//                    state_reg = state_reg ^ state_in[i];
+//                end
+//            end
+//            for (i = 0; i < DATA_WIDTH; i = i + 1) begin
+//                if (mask[i+LFSR_WIDTH]) begin
+//                    state_reg = state_reg ^ data_in[i];
+//                end
+//            end
+        end
+    end
+    // Moe: This next loop is for data output. We can ignore this
     for (n = 0; n < DATA_WIDTH; n = n + 1) begin : lfsr_data
         wire [LFSR_WIDTH+DATA_WIDTH-1:0] mask = lfsr_mask(n+LFSR_WIDTH);
 

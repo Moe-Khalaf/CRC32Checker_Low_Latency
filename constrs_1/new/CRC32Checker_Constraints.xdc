@@ -20,10 +20,10 @@ set_input_delay -clock sys_clk -max 1.000 [get_ports {polynomial_i[*]}]
 set_input_delay -clock sys_clk -min 0.500 [get_ports {polynomial_i[*]}]
 
 # Output delays - how long external logic needs data stable after clock
-set_output_delay -clock sys_clk -max 1.000 [get_ports {crc_o[*]}]
-set_output_delay -clock sys_clk -min 0.500 [get_ports {crc_o[*]}]
-set_output_delay -clock sys_clk -max 1.000 [get_ports {crc_valid_o}]
-set_output_delay -clock sys_clk -min 0.500 [get_ports {crc_valid_o}]
+# set_output_delay -clock sys_clk -max 1.000 [get_ports {crc_o[*]}]
+# set_output_delay -clock sys_clk -min 0.500 [get_ports {crc_o[*]}]
+# set_output_delay -clock sys_clk -max 1.000 [get_ports {crc_valid_o}]
+# set_output_delay -clock sys_clk -min 0.500 [get_ports {crc_valid_o}]
 
 # ==============================================================================
 # Additional Timing Constraints

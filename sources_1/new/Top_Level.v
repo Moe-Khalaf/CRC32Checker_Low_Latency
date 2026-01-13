@@ -34,8 +34,8 @@ module Top_Level(
     input wire data_valid_i,        // Input Data Bus Valid Flag
     input wire data_last_i,         // Input Data Bus Last Word Flag
     input wire [31:0] polynomial_i, // Generator Polynomial Sequence
-    output reg [31:0] crc_o,       // Output CRC Data
-    output reg crc_valid_o         // Output CRC Valid Flag
+    output wire [31:0] crc_o,       // Output CRC Data
+    output wire crc_valid_o         // Output CRC Valid Flag
 
     );
     
@@ -62,17 +62,22 @@ module Top_Level(
             end else begin
                 crc_engine_en <= 0;
             end
+        end else begin
+            word_count <= 0;
+            message_shift <= 0;
+            crc_engine_en <= 0;
         end
     end
     
     always @(posedge clk_i) begin
         if(rst_i) begin
             message_buffer <= 0;
+            compute_flag <= 0;
         end else begin
-            if(crc_engine_en) begin
+            if(crc_engine_en && !compute_flag) begin
                 message_buffer <= message_shift;
                 compute_flag <= 1;
-            end else begin
+            end else  begin
                 compute_flag <= 0;
                 message_buffer <= 0;
             end
@@ -87,28 +92,18 @@ module Top_Level(
         .LFSR_FEED_FORWARD(0),
         .REVERSE(1),
         .DATA_WIDTH(256),
-        .STYLE("AUTO")  
+        .STYLE("LOOP")  
     ) crc32_engine(
+        .clk_in(clk_i),
+        .enable_in(compute_flag),
+        .reset_in(rst_i),
         .data_in(message_buffer),
         .state_in(state_reg),
         .data_out(),
-        .state_out(crc_w)
+        .state_out(crc_o),
+        .state_out_valid(crc_valid_o)
     );
     
-    // Stage 3: Output Control
-    always @(posedge clk_i) begin
-        if(rst_i) begin
-            crc_o <= 0;
-            crc_valid_o <= 0;
-        end else begin
-            if(compute_flag) begin
-                crc_o <= crc_w;
-                crc_valid_o <= 1;
-            end else begin
-                crc_o <= 0;
-                crc_valid_o <= 0;
-            end
-       end
-    end
+   
     
 endmodule
