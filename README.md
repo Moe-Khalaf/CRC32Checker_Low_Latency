@@ -36,15 +36,18 @@ Top\_level.v serves as an example of how the CRC32 engine can be applied in a la
 
 lfsr\_crc.v is an adapted version of [Alex Forenchich's lfsr.v design](https://github.com/alexforencich/verilog-lfsr/blob/master/rtl/lfsr.v). The original lfsr.v is a parametrized implementation of a parallel xor tree lfsr simulator. This is used to implement the CRC32 logic calculation. The original lfsr.v is purely combinational logic and can be customized for any number of input data bits, initial state bits, polynomial bits, and other characteristics.
 
-The block diagram below shows the architecture of Top\_level.v !\[Block Diagram](docs/CRC32TopLevelDiagram.png)
+The block diagram below shows the architecture of Top\_level.v 
+![Block Diagram](docs/CRC32TopLevelDiagram.png)
 
-The block diagram below shows the architecture of the modified lfsr.v module. !\[Engine Block Diagram](docs/NewArchitecture.png)
+The block diagram below shows the architecture of the modified lfsr.v module. 
+![Engine Block Diagram](docs/NewArchitecture.png)
 
 
 
 ## Design Evolution
 
-For the sake of learning value and exploration, the original design of lfsr.v was synthesized and implemented in Vivado to assess for timing closure. At 256 data bits, the original design would fail to meet timing closure at 200MHz with a worst negative slack(WNS) of 5.3ns. The image below depicts the critical path of this architecture. !\[Old Architecture](docs/OldArchitecture.png)
+For the sake of learning value and exploration, the original design of lfsr.v was synthesized and implemented in Vivado to assess for timing closure. At 256 data bits, the original design would fail to meet timing closure at 200MHz with a worst negative slack(WNS) of 5.3ns. The image below depicts the critical path of this architecture. 
+![Old Architecture](docs/OldArchitecture.png)
 
 In order to modify this design for timing closure, the first instinct is to pipeline the XOR tree combinational logic. Given that a 200MHz clock frequency would imply a 5ns clock period, it became clear that simply splitting the combinational logic into two sequential stages would not suffice. The mathematics behind this judgement are as follows
 
